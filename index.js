@@ -50,7 +50,6 @@ client.on("connect", function (connection) {
     logMessage(message);
   });
 });
-
 client.connect(
-  `wss://us-nyc-1.websocket.me/v3/${process.env.CHAT_ROOM}?api_key=${process.env.CHAT_WS_API}`
+  `wss://us-nyc-1.websocket.me/v3/${process.env.ROOM_CHAT}?api_key=${process.env.DOUG_PS_API}`
 );
