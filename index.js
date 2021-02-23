@@ -70,10 +70,6 @@ const Client = (room) => {
     }
   }
 
-  function handleConnect({ name, message }) {
-    console.log({ name, message });
-  }
-
   const client = new WebSocketClient();
 
   client.on("connectFailed", function (error) {
@@ -82,7 +78,6 @@ const Client = (room) => {
 
   client.on("connect", function (connection) {
     console.log("WebSocket Client Connected");
-
     connection.on("error", function (error) {
       console.log("Connection Error: " + error.toString());
     });
@@ -91,6 +86,7 @@ const Client = (room) => {
       console.log("Connection Closed");
     });
 
+    let users_online = [];
     connection.on("message", function (message) {
       const data = JSON.parse(message.utf8Data);
       if (data.message === "") return;
@@ -98,10 +94,17 @@ const Client = (room) => {
         data.message === "joined the chat" ||
         data.message === "left the chat"
       ) {
+        if (data.message === "joined the chat") {
+          users_online.push(data.name);
+        }
+        if (data.message === "left the chat") {
+          users_online = users_online.filter((user) => user !== data.name);
+        }
         connection.send(
           JSON.stringify({
             id: "service",
             type: "online",
+            users: users_online,
             name: data.name,
             message: data.message,
           })
