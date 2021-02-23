@@ -70,6 +70,10 @@ const Client = (room) => {
     }
   }
 
+  function handleConnect({ name, message }) {
+    console.log({ name, message });
+  }
+
   const client = new WebSocketClient();
 
   client.on("connectFailed", function (error) {
@@ -88,12 +92,28 @@ const Client = (room) => {
     });
 
     connection.on("message", function (message) {
-      logMessage(message);
+      const data = JSON.parse(message.utf8Data);
+      if (data.message === "") return;
+      if (
+        data.message === "joined the chat" ||
+        data.message === "left the chat"
+      ) {
+        connection.send(
+          JSON.stringify({
+            id: "service",
+            type: "online",
+            name: data.name,
+            message: data.message,
+          })
+        );
+      } else {
+        logMessage(message);
+      }
     });
   });
 
   client.connect(
-    `wss://us-nyc-1.websocket.me/v3/${room}?api_key=${process.env.DOUG_PS_API}`
+    `wss://us-nyc-1.websocket.me/v3/${room}?api_key=${process.env.BEKA_PS_API}`
   );
 };
 
