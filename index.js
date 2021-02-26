@@ -1,15 +1,15 @@
 const Client = (room) => {
-  require("dotenv").config();
   const fs = require("fs");
+  require("dotenv").config();
   const WebSocketClient = require("websocket").client;
-
+  // Chat Room IDs
   const {
     ROOM_ROOT,
     ROOM_SURREAL,
     ROOM_MEHAKJAIN,
     ROOM_HPRIVAKOS,
   } = process.env;
-
+  // Chat Room Names
   const channel = {
     id: room,
     path:
@@ -23,10 +23,9 @@ const Client = (room) => {
         ? "hprivakos"
         : "other",
   };
-
+  // Create Logfile Path
   function setFilePath() {
-    const today = new Date();
-    const date = today
+    const date = new Date()
       .toLocaleString("en-US", {
         month: "2-digit",
         day: "2-digit",
@@ -36,24 +35,24 @@ const Client = (room) => {
       .join("-");
     return `../chatlogs/${channel.path}/${channel.path}_${date}.json`;
   }
-
+  // Write Message to Logfile
   function logMessage(message) {
-    const LogfileName = setFilePath();
+    const path = setFilePath();
     try {
-      if (fs.existsSync(LogfileName)) {
-        fs.readFile(LogfileName, "utf8", function readFileCallback(err, data) {
+      if (fs.existsSync(path)) {
+        fs.readFile(path, "utf8", function readFileCallback(err, data) {
           if (err) {
             console.log(err);
           } else {
             const log = JSON.parse(data);
             log.messages.push(JSON.parse(message.utf8Data));
             const json = JSON.stringify(log, null, 2);
-            fs.writeFile(LogfileName, json, "utf8", () => {});
+            fs.writeFile(path, json, "utf8", () => {});
           }
         });
       } else {
         fs.writeFile(
-          LogfileName,
+          path,
           JSON.stringify(
             {
               info: { room: channel.path, created: new Date() },
@@ -66,26 +65,25 @@ const Client = (room) => {
         );
       }
     } catch (err) {
-      console.error(err);
+      console.log(err);
     }
   }
-
+  // Create Instance of WS
   const client = new WebSocketClient();
-
   client.on("connectFailed", function (error) {
     console.log("Connect Error: " + error.toString());
   });
-
+  // Handle Connection Open
   client.on("connect", function (connection) {
     console.log("WebSocket Client Connected");
     connection.on("error", function (error) {
       console.log("Connection Error: " + error.toString());
     });
-
+    // Handle Connection Close
     connection.on("close", function () {
       console.log("Connection Closed");
     });
-
+    //Handle Messages
     let users_online = [];
     connection.on("message", function (message) {
       const data = JSON.parse(message.utf8Data);
@@ -114,9 +112,9 @@ const Client = (room) => {
       }
     });
   });
-
+  // Connect to WS
   client.connect(
-    `wss://us-nyc-1.websocket.me/v3/${room}?api_key=${process.env.BEKA_PS_API}`
+    `wss://us-nyc-1.websocket.me/v3/${room}?api_key=${process.env.DOUG_PS_API}`
   );
 };
 
