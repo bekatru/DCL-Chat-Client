@@ -5,13 +5,13 @@ const n = 5; //Number of last messages
 const m = 15; //Number of minutes
 const onlineUsers = [];
 
-const handleConnection = (data, room, callback) => {
+const handleMessage = (data, room, callback) => {
   const { type, message, name, id } = JSON.parse(data);
   switch (type + "_" + message) {
     case "connection_joined":
       onlineUsers.push({ id, name });
-      getRecentMessages(room, n, m).then((data) => {
-        if (data) {
+      getRecentMessages(room, n, m)
+        .then((data) => {
           callback(
             JSON.stringify({
               id: "service",
@@ -21,8 +21,9 @@ const handleConnection = (data, room, callback) => {
               adress: id,
             })
           );
-        }
-      });
+        })
+        .then(() => console.log("{+}Connection{+}"))
+        .catch((error) => console.error(error));
       break;
     case "connection_left":
       const i = onlineUsers.findIndex((user) => user.id === id);
@@ -34,6 +35,7 @@ const handleConnection = (data, room, callback) => {
           onlineUsers,
         })
       );
+      console.log("{-}Connection{-}");
       break;
     default:
       logMessage(room, JSON.parse(data));
@@ -41,9 +43,11 @@ const handleConnection = (data, room, callback) => {
 };
 
 // Get Recent Messages
-const getRecentMessages = (room, number, minutes) => {
+function getRecentMessages(room, number, minutes) {
   return getLogMessages(room)
-    .then((data) => JSON.parse(data))
+    .then((data) => {
+      return JSON.parse(data);
+    })
     .then(({ messages }) => {
       const last = messages.slice(Math.max(messages.length - number, 1));
       const recent = last.filter(
@@ -53,12 +57,15 @@ const getRecentMessages = (room, number, minutes) => {
       return recent;
     })
     .catch((err) => console.error(err));
-};
+}
 
 //Log Message
-const logMessage = (room, message) => {
+function logMessage(room, message) {
   getLogMessages(room)
-    .then((data) => JSON.parse(data))
+    .then((data) => {
+      const res = JSON.parse(data);
+      return res;
+    })
     .then(({ info, messages }) => {
       fs.writeFile(
         genFilePath(room),
@@ -74,7 +81,9 @@ const logMessage = (room, message) => {
           if (err) {
             console.error(err);
           } else {
-            console.log("Message Logged");
+            console.groupEnd();
+            console.groupEnd();
+            console.log("[]Message Logged[]");
           }
         }
       );
@@ -82,26 +91,25 @@ const logMessage = (room, message) => {
     .catch((error) => {
       switch (error.code) {
         case "ENOENT":
-          console.log(
-            "!!!Error!!!\ngetLastMessages()\nFile doesn't exist\n" + file
-          );
-          createLogFile(room);
+          console.group("File doesn't exist");
+          console.log("\nCreating new file at...\n" + genFilePath(room));
+          createLogFile(room, message);
           break;
         default:
           console.error(error);
       }
     });
-};
+}
 
 //Get Log Messages
-const getLogMessages = (room) => {
+function getLogMessages(room) {
   const read = util.promisify(fs.readFile);
   const file = genFilePath(room);
   return read(file, "utf8");
-};
+}
 
 //Create Log File
-const createLogFile = (room) => {
+function createLogFile(room, message) {
   fs.writeFile(
     genFilePath(room),
     JSON.stringify(
@@ -112,12 +120,36 @@ const createLogFile = (room) => {
       null,
       2
     ),
-    () => console.log("New Log File Created")
+    (error) => {
+      if (error) {
+        switch (error.code) {
+          case "ENOENT":
+            console.log("Folder doesn't exist\nCreating...");
+            fs.mkdir("../chatlogs/" + room, (error) => {
+              if (error) {
+                console.log("Failed");
+                console.error(error);
+              } else {
+                console.log("Done\nRetrying");
+                logMessage(room, message);
+              }
+            });
+            break;
+          default:
+            console.log("Failed");
+            console.error(error);
+        }
+      } else {
+        console.log("Done");
+        console.log("New Log File Created");
+        logMessage(room, message);
+      }
+    }
   );
-};
+}
 
 //Generate File Path
-const genFilePath = (room) => {
+function genFilePath(room) {
   const date = new Date()
     .toLocaleString("en-US", {
       month: "2-digit",
@@ -127,7 +159,6 @@ const genFilePath = (room) => {
     .split("/")
     .join("-");
   return `../chatlogs/${room}/${room}_${date}.json`;
-};
+}
 
-exports.genFilePath = genFilePath;
-exports.handleConnection = handleConnection;
+exports.handleMessage = handleMessage;
