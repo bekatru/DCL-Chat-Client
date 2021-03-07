@@ -49,7 +49,7 @@ const Client = (room) => {
   });
   // Connect to WS
   client.connect(
-    `wss://us-nyc-1.websocket.me/v3/${room}?api_key=${process.env.BEKA_PS_API}`
+    `wss://us-nyc-1.websocket.me/v3/${room}?api_key=${process.env.DOUG_PS_API}`
   );
 };
 
